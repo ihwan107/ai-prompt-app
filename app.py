@@ -5,36 +5,47 @@ import io
 from deep_translator import GoogleTranslator
 
 # ==========================================
-# FUNGSI PROMPT TO IMAGE (Perbaikan Total & Aman)
+# FUNGSI PROMPT TO IMAGE (Versi Solusi Total & Stabil)
 # ==========================================
 def text_to_image(prompt):
-    # Menggunakan base URL yang benar tanpa ada typo (.ai)
-    url = "https://pollinations.ai"
+    clean_prompt = prompt.strip()
+    base_url = "https://pollinations.ai"
     
-    # Memisahkan prompt ke dalam parameter kueri (params) 
-    # Metode ini secara otomatis mengompres kalimat panjang agar aman di internet
+    # 1. Metode Utama: Menggunakan parameter kueri terpisah (Sangat aman untuk teks panjang)
     params = {
-        "prompt": prompt.strip(),
+        "prompt": clean_prompt,
         "model": "flux",
         "width": 1024,
-        "height": 1024
+        "height": 1024,
+        "nologo": "true"
     }
     
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        # Mengirim data dengan parameter terpisah (Menggunakan requests.get yang standar)
-        response = requests.get(url, headers=headers, params=params, timeout=60)
-        
-        # Validasi apakah respon dari server berupa data gambar murni
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        response = requests.get(base_url, headers=headers, params=params, timeout=40)
         content_type = response.headers.get("Content-Type", "")
+        
+        # JIKA BERHASIL: Langsung tampilkan file gambar murni
         if response.status_code == 200 and "image" in content_type:
             return Image.open(io.BytesIO(response.content))
-        else:
-            st.error(f"Gagal memproses gambar. Server memberikan respons kode: {response.status_code}")
-            return None
             
+        # JIKA SERVER MENGIRIM TEKS BUKAN GAMBAR (Kasus Error 200): Aktifkan Jalur Pelapis (Fallback)
+        else:
+            # Mengonversi teks manual agar karakter spasi terenkripsi sempurna ke dalam struktur URL
+            encoded_prompt = requests.utils.quote(clean_prompt)
+            fallback_url = f"https://pollinations.ai{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
+            
+            fallback_res = requests.get(fallback_url, headers=headers, timeout=40)
+            fallback_content = fallback_res.headers.get("Content-Type", "")
+            
+            if fallback_res.status_code == 200 and "image" in fallback_content:
+                return Image.open(io.BytesIO(fallback_res.content))
+            else:
+                st.error("Server AI sedang mengalami lonjakan antrean. Silakan klik ulang tombol beberapa saat lagi.")
+                return None
+                
     except Exception as e:
-        st.error(f"Terjadi masalah koneksi atau pembatasan jaringan: {e}")
+        st.error(f"Terjadi kendala batas waktu koneksi ke server: {e}")
         return None
 
 # ==========================================
@@ -126,7 +137,7 @@ with tab2:
                     st.success("Analisis Selesai (Dalam Bahasa Inggris)!")
                     st.text_area("Rekomendasi Prompt (English):", value=extracted_prompt, height=70)
                     
-                    # Bonus: Menerjemahkan balik hasil ekstrak ke Bahasa Indonesia
+                    # Menerjemahkan balik hasil ekstrak ke Bahasa Indonesia
                     try:
                         extracted_id = GoogleTranslator(source='en', target='id').translate(extracted_prompt)
                         st.text_area("Arti dalam Bahasa Indonesia:", value=extracted_id, height=70)
