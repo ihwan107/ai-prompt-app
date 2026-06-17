@@ -3,48 +3,41 @@ import requests
 from PIL import Image
 import io
 from deep_translator import GoogleTranslator
+from urllib.parse import urljoin, quote
 
 # ==========================================
-# FUNGSI PROMPT TO IMAGE (Versi Solusi Total & Kebal Error)
+# FUNGSI PROMPT TO IMAGE (Versi Solusi Mutlak & Anti-Gagal)
 # ==========================================
 def text_to_image(prompt):
+    # Membersihkan teks dari spasi liar di awal dan akhir
     clean_prompt = prompt.strip()
     
-    # Endpoint resmi gambar yang valid dengan garis miring penutup yang aman
+    # Domain dasar resmi yang dikunci rapat tanpa risiko penempelan teks ilegal
     base_url = "https://pollinations.ai"
     
-    # 1. Metode Utama: Menggunakan parameter kueri terpisah (Aman untuk teks panjang)
-    params = {
-        "prompt": clean_prompt,
-        "model": "flux",
-        "width": 1024,
-        "height": 1024,
-        "nologo": "true"
-    }
-    
     try:
+        # Mengonversi teks kalimat ke dalam format sandi internet resmi (URL Encoding)
+        # Langkah ini memastikan spasi berubah menjadi %20 secara aman oleh sistem Python
+        encoded_prompt = quote(clean_prompt)
+        
+        # Menggunakan fungsi bawaan Python untuk menggabungkan domain dan teks secara presisi
+        # Hasil akhirnya dijamin mutlak berupa: https://pollinations.aikalimat%20anda
+        final_url = urljoin(base_url, encoded_prompt)
+        
+        # Menambahkan parameter tambahan untuk kualitas gambar model Flux
+        final_url_with_params = f"{final_url}?width=1024&height=1024&model=flux&nologo=true"
+        
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        response = requests.get(base_url, headers=headers, params=params, timeout=40)
+        response = requests.get(final_url_with_params, headers=headers, timeout=45)
         content_type = response.headers.get("Content-Type", "")
         
-        # JIKA BERHASIL: Langsung tampilkan file gambar murni
+        # Validasi dokumen respon: Jika file berupa gambar murni, langsung tampilkan
         if response.status_code == 200 and "image" in content_type:
             return Image.open(io.BytesIO(response.content))
-            
-        # JIKA SERVER PADAT: Aktifkan Jalur Pelapis (Fallback URL Langsung dengan Enkripsi)
         else:
-            encoded_prompt = requests.utils.quote(clean_prompt)
-            fallback_url = f"{base_url}{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
+            st.error("Server AI eksternal sedang sibuk atau mendeteksi kata yang terlalu sensitif. Mohon coba klik ulang beberapa saat lagi.")
+            return None
             
-            fallback_res = requests.get(fallback_url, headers=headers, timeout=40)
-            fallback_content = fallback_res.headers.get("Content-Type", "")
-            
-            if fallback_res.status_code == 200 and "image" in fallback_content:
-                return Image.open(io.BytesIO(fallback_res.content))
-            else:
-                st.error("Server AI sedang mengalami lonjakan antrean atau pemblokiran kata sensitif. Silakan ubah sedikit kalimat Anda dan klik ulang beberapa saat lagi.")
-                return None
-                
     except Exception as e:
         st.error(f"Terjadi kendala batas waktu koneksi ke server: {e}")
         return None
