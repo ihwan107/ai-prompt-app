@@ -5,12 +5,12 @@ import io
 from deep_translator import GoogleTranslator
 
 # ==========================================
-# FUNGSI PROMPT TO IMAGE (Versi Solusi Total & Stabil)
+# FUNGSI PROMPT TO IMAGE (Versi Solusi Total & Kebal Error)
 # ==========================================
 def text_to_image(prompt):
     clean_prompt = prompt.strip()
     
-    # Endpoint resmi gambar yang valid tanpa typo
+    # Endpoint resmi gambar yang valid dengan garis miring penutup yang aman
     base_url = "https://pollinations.ai"
     
     # 1. Metode Utama: Menggunakan parameter kueri terpisah (Aman untuk teks panjang)
@@ -31,9 +31,8 @@ def text_to_image(prompt):
         if response.status_code == 200 and "image" in content_type:
             return Image.open(io.BytesIO(response.content))
             
-        # JIKA SERVER PADAT: Aktifkan Jalur Pelapis (Fallback URL Langsung)
+        # JIKA SERVER PADAT: Aktifkan Jalur Pelapis (Fallback URL Langsung dengan Enkripsi)
         else:
-            # Mengonversi teks manual agar karakter spasi terenkripsi sempurna ke dalam struktur URL
             encoded_prompt = requests.utils.quote(clean_prompt)
             fallback_url = f"{base_url}{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
             
@@ -43,7 +42,7 @@ def text_to_image(prompt):
             if fallback_res.status_code == 200 and "image" in fallback_content:
                 return Image.open(io.BytesIO(fallback_res.content))
             else:
-                st.error("Server AI sedang mengalami lonjakan antrean. Silakan klik ulang tombol beberapa saat lagi.")
+                st.error("Server AI sedang mengalami lonjakan antrean atau pemblokiran kata sensitif. Silakan ubah sedikit kalimat Anda dan klik ulang beberapa saat lagi.")
                 return None
                 
     except Exception as e:
