@@ -5,22 +5,34 @@ import io
 from deep_translator import GoogleTranslator
 
 # ==========================================
-# FUNGSI PROMPT TO IMAGE (Versi Final & Stabil)
+# FUNGSI PROMPT TO IMAGE (Perbaikan Total & Aman)
 # ==========================================
 def text_to_image(prompt):
-    base_url = "https://pollinations.ai"
-    formatted_prompt = requests.utils.quote(prompt.strip())
-    final_url = f"{base_url}{formatted_prompt}?width=1024&height=1024&model=flux"
+    # Menggunakan base URL yang benar tanpa ada typo (.ai)
+    url = "https://pollinations.ai"
+    
+    # Memisahkan prompt ke dalam parameter kueri (params) 
+    # Metode ini secara otomatis mengompres kalimat panjang agar aman di internet
+    params = {
+        "prompt": prompt.strip(),
+        "model": "flux",
+        "width": 1024,
+        "height": 1024
+    }
     
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(final_url, headers=headers, timeout=60)
+        # Mengirim data dengan parameter terpisah (Menggunakan requests.get yang standar)
+        response = requests.get(url, headers=headers, params=params, timeout=60)
+        
+        # Validasi apakah respon dari server berupa data gambar murni
         content_type = response.headers.get("Content-Type", "")
         if response.status_code == 200 and "image" in content_type:
             return Image.open(io.BytesIO(response.content))
         else:
-            st.error(f"Gagal memproses gambar. Kode respon: {response.status_code}")
+            st.error(f"Gagal memproses gambar. Server memberikan respons kode: {response.status_code}")
             return None
+            
     except Exception as e:
         st.error(f"Terjadi masalah koneksi atau pembatasan jaringan: {e}")
         return None
