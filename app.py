@@ -9,9 +9,11 @@ from deep_translator import GoogleTranslator
 # ==========================================
 def text_to_image(prompt):
     clean_prompt = prompt.strip()
+    
+    # Endpoint resmi gambar yang valid tanpa typo
     base_url = "https://pollinations.ai"
     
-    # 1. Metode Utama: Menggunakan parameter kueri terpisah (Sangat aman untuk teks panjang)
+    # 1. Metode Utama: Menggunakan parameter kueri terpisah (Aman untuk teks panjang)
     params = {
         "prompt": clean_prompt,
         "model": "flux",
@@ -29,11 +31,11 @@ def text_to_image(prompt):
         if response.status_code == 200 and "image" in content_type:
             return Image.open(io.BytesIO(response.content))
             
-        # JIKA SERVER MENGIRIM TEKS BUKAN GAMBAR (Kasus Error 200): Aktifkan Jalur Pelapis (Fallback)
+        # JIKA SERVER PADAT: Aktifkan Jalur Pelapis (Fallback URL Langsung)
         else:
             # Mengonversi teks manual agar karakter spasi terenkripsi sempurna ke dalam struktur URL
             encoded_prompt = requests.utils.quote(clean_prompt)
-            fallback_url = f"https://pollinations.ai{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
+            fallback_url = f"{base_url}{encoded_prompt}?width=1024&height=1024&model=flux&nologo=true"
             
             fallback_res = requests.get(fallback_url, headers=headers, timeout=40)
             fallback_content = fallback_res.headers.get("Content-Type", "")
